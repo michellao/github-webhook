@@ -42,8 +42,8 @@ fn get_config() -> Option<Config> {
     let mut args = std::env::args();
     if let Some(position_key) = args.position(|arg| arg == "--private-key") {
         let private_value_file = args.nth(position_key + 1).expect("Private key file unset");
-        if let Some(position_key) = args.position(|arg| arg == "--public-key") {
-            let chain_value_file = args.nth(position_key + 1).expect("Public key file unset");
+        if let Some(position_key) = args.position(|arg| arg == "--fullchain-key") {
+            let chain_value_file = args.nth(position_key + 1).expect("Fullchain key file unset");
             return Some(Config {
                 private_key_file: private_value_file,
                 chain_key_file: chain_value_file,
