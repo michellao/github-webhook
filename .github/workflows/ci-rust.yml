@@ -3,9 +3,10 @@ name: Building app
 on:
   push:
     branches:
-      - $default-branch
-    pull_request:
-      - $default-branch
+      - main
+  pull_request:
+    branches:
+      - main
 env:
   CARGO_TERM_COLOR: always
 
