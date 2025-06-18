@@ -35,21 +35,25 @@ async fn gh_webhook(http_request: HttpRequest, req_body: String) -> impl Respond
                 return HttpResponse::Unauthorized().body("Invalid signature");
             }
             let event_type = github_headers.event_type;
-            match event_type {
-                EventType::Package => {
-                    let output = Command::new("./package.sh")
-                        .output()
-                        .expect("Failed to execute package.sh");
-                    println!("Package event received");
-                    println!("{}", std::str::from_utf8(&output.stdout).unwrap());
-                },
-                EventType::Ping => {
-                    println!("Ping event received");
-                },
-                _ => {
-                    println!("Nothing to do unknown event");
+            tokio::spawn(async move {
+                match event_type {
+                    EventType::Package => {
+                        let output = Command::new("./package.sh")
+                            .output()
+                            .expect("Failed to execute package.sh");
+                        println!("Package event received");
+                        if !output.stdout.is_empty() {
+                            println!("Package output: {}", String::from_utf8_lossy(&output.stdout));
+                        }
+                    },
+                    EventType::Ping => {
+                        println!("Ping event received");
+                    },
+                    _ => {
+                        println!("Nothing to do unknown event");
+                    }
                 }
-            }
+            });
         }
         None => return HttpResponse::BadRequest().body("Invalid headers"),
     }

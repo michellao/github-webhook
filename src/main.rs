@@ -9,7 +9,7 @@ struct Config {
     chain_key_file: String,
 }
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     if let Err(_) = dotenvy::dotenv() {
        std::env::var("GH_WEBHOOK_SECRET").expect("GH_WEBHOOK_SECRET must be set");
