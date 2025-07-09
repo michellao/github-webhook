@@ -1,4 +1,4 @@
-use std::{process::Command, str::FromStr};
+use std::{io::Write, process::{Command, Stdio}, str::FromStr};
 use actix_web::{http::header::{HeaderMap, HeaderValue}, post, HttpRequest, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
@@ -38,13 +38,19 @@ async fn gh_webhook(http_request: HttpRequest, req_body: String) -> impl Respond
             tokio::spawn(async move {
                 match event_type {
                     EventType::Package => {
-                        let output = Command::new("./package.sh")
-                            .output()
+                        let mut child = Command::new("./package.sh")
+                            .stdin(Stdio::piped())
+                            .stdout(Stdio::piped())
+                            .spawn()
                             .expect("Failed to execute package.sh");
-                        println!("Package event received");
-                        if !output.stdout.is_empty() {
-                            println!("Package output: {}", String::from_utf8_lossy(&output.stdout));
-                        }
+
+                        let mut stdin = child.stdin.take().expect("Failed to open stdin");
+                        std::thread::spawn(move || {
+                            stdin.write_all(req_body.as_bytes()).expect("Failed to write to stdin");
+                        });
+
+                        let output = child.wait_with_output().expect("Failed to read stdout");
+                        println!("Package event received: {}", String::from_utf8_lossy(&output.stdout));
                     },
                     EventType::Ping => {
                         println!("Ping event received");
