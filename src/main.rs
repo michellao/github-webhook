@@ -11,11 +11,17 @@ struct Config {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
     if let Err(_) = dotenvy::dotenv() {
        std::env::var("GH_WEBHOOK_SECRET").expect("GH_WEBHOOK_SECRET must be set");
     }
     let server_host = std::env::var("SERVER_HOST").unwrap_or(String::from("localhost"));
     let server_port = std::env::var("SERVER_PORT").unwrap_or(String::from("8080"));
+    let version = env!("CARGO_PKG_VERSION");
+    let not_continue = manage_version_arg(args, version);
+    if not_continue {
+        return Ok(());
+    }
 
     let http_server = HttpServer::new(|| {
         App::new()
@@ -40,6 +46,14 @@ async fn main() -> std::io::Result<()> {
             .run()
             .await
     }
+}
+
+fn manage_version_arg(args: Vec<String>, version: &str) -> bool {
+    if let Some(_n_version) = args.iter().position(|a| a == "--version") {
+        println!("Version: {}", version);
+        return true;
+    }
+    return false;
 }
 
 fn get_config() -> Option<Config> {
