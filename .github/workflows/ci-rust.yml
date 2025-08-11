@@ -34,6 +34,6 @@ jobs:
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: github-webkook-${{ runner.arch }}
+          name: github-webhook-${{ runner.arch }}
           path: |
             ./target/release/github-webhook
