@@ -39,10 +39,10 @@ pub trait GitProvider {
 pub async fn webhook_request(data: web::Data<Provider>, http_request: HttpRequest, req_body: String) -> impl Responder {
     let proviver = data.as_ref();
     let github = Github {
-        prefix: String::from(""),
+        prefix: String::from("github"),
     };
     let gitlab = Gitlab {
-        prefix: String::from(""),
+        prefix: String::from("gitlab"),
     };
     match proviver {
         Provider::Github => github.webhook(http_request, req_body),
