@@ -1,40 +1,40 @@
-mod github;
-use actix_web::{App, HttpServer};
+mod core;
+mod cli;
+
+use actix_web::{web, App, HttpServer};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-
-use crate::github::gh_webhook;
-
-struct Config {
-    private_key_file: String,
-    chain_key_file: String,
-}
+use crate::core::common::webhook_request;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    let args: Vec<String> = std::env::args().collect();
+    let cli = crate::cli::parse();
     if let Err(_) = dotenvy::dotenv() {
-       std::env::var("GH_WEBHOOK_SECRET").expect("GH_WEBHOOK_SECRET must be set");
-    }
+        let provider = &cli.provider;
+        match provider {
+            &cli::Provider::Github => std::env::var("GH_WEBHOOK_SECRET").expect("GH_WEBHOOK_SECRET must be set"),
+            &cli::Provider::Gitlab => std::env::var("GL_WEBHOOK_SECRET").expect("GL_WEBHOOK_SECRET must be set"),
+            &cli::Provider::Both => {
+                std::env::var("GH_WEBHOOK_SECRET").expect("GH_WEBHOOK_SECRET must be set");
+                std::env::var("GL_WEBHOOK_SECRET").expect("GL_WEBHOOK_SECRET must be set")
+            },
+        };
+    };
     let server_host = std::env::var("SERVER_HOST").unwrap_or(String::from("localhost"));
     let server_port = std::env::var("SERVER_PORT").unwrap_or(String::from("8080"));
-    let version = env!("CARGO_PKG_VERSION");
-    let not_continue = manage_version_arg(args, version);
-    if not_continue {
-        return Ok(());
-    }
 
-    let http_server = HttpServer::new(|| {
+    let http_server = HttpServer::new(move || {
         App::new()
-            .service(gh_webhook)
+            .app_data(web::Data::new(cli.provider))
+            .service(webhook_request)
     });
-
-    if let Some(config) = get_config() {
+    let tls = &cli.tls;
+    if let Some(config) = tls {
         let mut builder = SslAcceptor::mozilla_modern_v5(SslMethod::tls()).unwrap();
         builder
-            .set_private_key_file(config.private_key_file, SslFiletype::PEM)
+            .set_private_key_file(&config.private_key, SslFiletype::PEM)
             .expect("Private key file unset");
         builder
-            .set_certificate_chain_file(config.chain_key_file)
+            .set_certificate_chain_file(&config.fullchain_key)
             .expect("Certificate chain file unset");
         println!("Started TLS Server on {}:{}", server_host, server_port);
         http_server.bind_openssl((server_host, server_port.parse().unwrap()), builder)?
@@ -46,27 +46,4 @@ async fn main() -> std::io::Result<()> {
             .run()
             .await
     }
-}
-
-fn manage_version_arg(args: Vec<String>, version: &str) -> bool {
-    if let Some(_n_version) = args.iter().position(|a| a == "--version") {
-        println!("Version: {}", version);
-        return true;
-    }
-    return false;
-}
-
-fn get_config() -> Option<Config> {
-    let mut args = std::env::args();
-    if let Some(_) = args.position(|arg| arg == "--private-key") {
-        let private_value_file = args.next().expect("");
-        if let Some(_) = args.position(|arg| arg == "--fullchain-key") {
-            let chain_value_file = args.next().expect("Fullchain key file unset");
-            return Some(Config {
-                private_key_file: private_value_file,
-                chain_key_file: chain_value_file,
-            })
-        }
-    }
-    None
 }
