@@ -2,6 +2,7 @@
 name = "github-webhook"
 version = "0.2.1"
 edition = "2024"
+rust-version = "1.89"
 
 [dependencies]
 actix-web = { version = "4", features = ["openssl"] }
