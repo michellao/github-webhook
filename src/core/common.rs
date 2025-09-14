@@ -63,16 +63,31 @@ pub async fn calling_script_shell(prefix: String, event_type: EventType, req_bod
 
 #[post("/webhook")]
 pub async fn webhook_request(data: web::Data<Provider>, http_request: HttpRequest, req_body: String) -> impl Responder {
-    let proviver = data.as_ref();
+    let proviver_enabled = data.as_ref();
     let github = Github {
         prefix: String::from("github"),
     };
     let gitlab = Gitlab {
         prefix: String::from("gitlab"),
     };
-    match proviver {
+    match proviver_enabled {
         Provider::Github => github.webhook(http_request, req_body),
         Provider::Gitlab => gitlab.webhook(http_request, req_body),
-        Provider::Both => HttpResponse::Accepted().body("Accepted"),
+        Provider::Both => {
+            let user_agent = http_request.headers().get("User-Agent");
+            match user_agent {
+                Some(ua) => {
+                    let str_ua = ua.to_str().unwrap();
+                    if str_ua.contains("GitLab") {
+                        return gitlab.webhook(http_request, req_body);
+                    } else if str_ua.contains("GitHub") {
+                        return github.webhook(http_request, req_body);
+                    } else {
+                        return HttpResponse::BadRequest().body("Unknown User-Agent header");
+                    }
+                },
+                None => HttpResponse::BadRequest().body("Missing User-Agent header"),
+            }
+        },
     }
 }
