@@ -35,6 +35,7 @@ fn gitlab_headers(headers: &HeaderMap) -> Option<Headers> {
 impl GitProvider for Gitlab {
     fn webhook(self, http_request: HttpRequest, req_body: String) -> HttpResponse {
         let headers = http_request.headers();
+        log::debug!("GitLab headers: {:?}", headers);
         match gitlab_headers(headers) {
             Some(gitlab_headers) => {
                 let complete_signature = gitlab_headers.signature;

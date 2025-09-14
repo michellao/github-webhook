@@ -25,6 +25,7 @@ impl GitProvider for Github
 {
     fn webhook(self, http_request: HttpRequest, req_body: String) -> HttpResponse {
         let headers = http_request.headers();
+        log::debug!("GitHub headers: {:?}", headers);
         match github_headers(headers) {
             Some(github_headers) => {
                 let complete_signature = github_headers.signature;

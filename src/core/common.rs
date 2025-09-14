@@ -1,5 +1,6 @@
 use std::{io::Write, process::{Command, Stdio}, str::FromStr};
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
+use log::info;
 use serde::{Deserialize, Serialize};
 use crate::{cli::Provider, core::{github::Github, gitlab::Gitlab}};
 
@@ -50,13 +51,14 @@ pub async fn calling_script_shell(prefix: String, event_type: EventType, req_bod
             });
 
             let output = child.wait_with_output().expect("Failed to read stdout");
-            println!("Package event received: {}", String::from_utf8_lossy(&output.stdout));
+            info!("Package event received");
+            info!("{}", String::from_utf8_lossy(&output.stdout));
         },
         EventType::Ping => {
-            println!("Ping event received");
+            info!("Ping event received");
         },
         _ => {
-            println!("Nothing to do unknown event");
+            info!("Nothing to do unknown event");
         }
     }
 }

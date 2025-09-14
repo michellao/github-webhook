@@ -1,12 +1,14 @@
 mod core;
 mod cli;
 
+use log::info;
 use actix_web::{web, App, HttpServer};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use crate::core::common::webhook_request;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init();
     let cli = crate::cli::parse();
     if let Err(_) = dotenvy::dotenv() {
         let provider = &cli.provider;
@@ -36,12 +38,12 @@ async fn main() -> std::io::Result<()> {
         builder
             .set_certificate_chain_file(&config.fullchain_key)
             .expect("Certificate chain file unset");
-        println!("Started TLS Server on {}:{}", server_host, server_port);
+        info!("Started TLS Server on {}:{}", server_host, server_port);
         http_server.bind_openssl((server_host, server_port.parse().unwrap()), builder)?
             .run()
             .await
     } else {
-        println!("Started HTTP Server on {}:{}", server_host, server_port);
+        info!("Started HTTP Server on {}:{}", server_host, server_port);
         http_server.bind((server_host, server_port.parse().unwrap()))?
             .run()
             .await
